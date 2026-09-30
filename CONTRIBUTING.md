@@ -218,6 +218,54 @@ run `cargo audit` before pushing.
 When upgrading a dependency to resolve an advisory, note the advisory ID in
 the CHANGELOG entry.
 
+### Automated Dependency Updates with Dependabot
+
+Dependabot is configured to automatically open PRs for dependency updates in both
+`intent_settlement/` and `proof_registry/`, plus GitHub Actions versions in
+`.github/workflows/`. See [`.github/dependabot.yml`](.github/dependabot.yml).
+
+**Dependabot PR Review Policy:** Every dependency-update PR from Dependabot must pass
+the same CI gates as any manually-submitted PR — `fmt`, `clippy`, `test`, `build`,
+and `audit`. There is no special fast-track or auto-merge for Dependabot PRs; each
+one is reviewed with full scrutiny.
+
+**Edge Case — `#![no_std]` Compatibility:** When reviewing a Dependabot PR that
+bumps a dependency, re-verify that the new version does not transitively pull in
+`std` (which would violate the contract's `#![no_std]` requirement). If a Dependabot
+PR introduces a transitive `std` dependency, reject and close it; request a different
+version or file an issue with the upstream maintainer.
+
+### Secrets Scanning
+
+Every commit and pull request is scanned for accidentally-committed secrets
+(Stellar secret keys, API tokens, credentials, etc.) using
+[gitleaks](https://github.com/gitleaks/gitleaks). The scan runs automatically
+in the `secrets-scan` CI job and is configured by [`.gitleaks.toml`](.gitleaks.toml).
+
+**If the secrets-scan job fails on your PR:**
+
+1. **Do not push again without remedying the issue.** A committed secret is
+   compromised by virtue of being in git history — even if you delete it in a
+   follow-up commit, it remains in the repository's git history.
+2. Identify what was scanned and flagged:
+   - Check the job's output for the exact rule name and line number.
+   - Confirm whether it's a real secret or a false positive (e.g., a placeholder
+     value from `deploy-testnet.env.example`).
+3. **If it's a real secret:**
+   - **Revoke the secret immediately** (rotate the key, invalidate the token, etc.).
+   - Rewrite the git history to remove the secret from all commits
+     (use `git filter-branch` or a tool like `git-filter-repo`).
+   - Force-push the corrected history to your branch.
+4. **If it's a false positive:**
+   - Add the pattern to the `allowlist` in [`.gitleaks.toml`](.gitleaks.toml)
+     if it is a legitimate placeholder or non-secret pattern that should never
+     trigger the scan (e.g., example addresses from documentation).
+   - Re-commit and push.
+
+**Example false positive:** The placeholder secret key
+`SXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX` in
+`deploy-testnet.env.example` is allowlisted and will not trigger the scan.
+
 ---
 
 ## Code Conventions
