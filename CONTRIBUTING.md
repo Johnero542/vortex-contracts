@@ -160,6 +160,27 @@ When adding a new entrypoint or changing existing behavior, add or update a test
 that exercises the new code path. PRs that change logic without a corresponding
 test change will be asked to add coverage.
 
+### Property-based testing (proptest)
+
+Long-running property-based tests use [`proptest`](https://crates.io/crates/proptest) to explore random sequences
+of operations and verify invariants:
+
+- `proptest_bond.rs` — Bond conservation and lifecycle invariants
+- `proptest_fill.rs` — Fill conservation and ordering invariants
+
+These tests run with a low case count (256) in PR CI to keep iteration time under
+control. A nightly scheduled job (`.github/workflows/nightly-fuzz.yml`) runs them
+with a higher case count (10000) to catch regressions that only appear after many
+interleavings.
+
+If a proptest run fails, the failure is shrunk to a minimal reproduction sequence
+and saved to `.proptest-regressions/`. To confirm the fix, run the test locally
+or replay the same PROPTEST_RNG seed:
+
+```bash
+PROPTEST_RNG=<seed> cargo test --features testutils -- <test_name>
+```
+
 ---
 
 ## Linting and Formatting
@@ -347,6 +368,8 @@ configuration correct as the workflow grows.
 | `Contract (stable)` | `ci.yml` / `contract` matrix leg | ✅ Yes |
 | `Contract (1.78)` | `ci.yml` / `contract` matrix leg | ✅ Yes |
 | `Dependency audit` | `ci.yml` / `audit` | ✅ Yes |
+| `Code coverage` | `ci.yml` / `coverage` | ❌ No (advisory) |
+| `Resource cost drift detection` | `ci.yml` / `resource-cost-drift` | ❌ No (advisory) |
 
 > **Note:** Matrix jobs are reported to GitHub as `<job.name> (<matrix value>)`.
 > The exact strings you must enter in the branch-protection UI are
@@ -411,7 +434,6 @@ once they are merged:
 | Job name | Workflow | Notes |
 |---|---|---|
 | `WASM size gate` | `ci.yml` (planned) | Blocks merges that grow the wasm by > N KB |
-| `Coverage` | `coverage.yml` (planned) | Advisory until a baseline is established |
 
 ### GITHUB_TOKEN permission model
 
@@ -436,6 +458,8 @@ needs.
 | `proptest` | Checkout + `cargo test` | `contents: read` |
 | `audit` | Checkout + `cargo audit` (queries RustSec DB over HTTPS, not the GitHub API) | `contents: read` |
 | `mutants` | Checkout + `cargo mutants` (mutates source in a runner-local temp copy) | `contents: read` |
+| `coverage` | Checkout + `cargo llvm-cov` + upload to Codecov via HTTPS (not GitHub API) | `contents: read` |
+| `resource-cost-drift` | Checkout + run `scripts/check-resource-cost-drift.sh` (runs benchmarks and diffs markdown) | `contents: read` |
 
 **Adding a job that needs elevated scope:**
 
