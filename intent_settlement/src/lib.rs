@@ -780,6 +780,11 @@ impl IntentSettlement {
         // admin. require_auth_for_args is not needed because there are no
         // separate per-argument capabilities to scope — the signer IS the admin.
         admin.require_auth();
+        // Probe the SEP-41 interface: if `bond_token` isn't a real token contract
+        // this will trap and revert the transaction before we store anything.
+        let token_client = token::Client::new(&env, &bond_token);
+        // decimals() is a pure view with no side-effects; we discard the value.
+        let _decimals = token_client.decimals();
         env.storage().instance().set(&DataKey::Admin, &admin);
         env.storage()
             .instance()
@@ -2255,6 +2260,10 @@ impl IntentSettlement {
 
         if fill_amount <= 0 {
             panic_with_error!(&env, Error::ZeroAmount);
+        }
+
+        if fill_amount > MAX_AMOUNT {
+            panic_with_error!(&env, Error::AmountTooLarge);
         }
 
         // ── Proof gate (issue #190) ─────────────────────────────────────────
@@ -4061,9 +4070,12 @@ impl IntentSettlement {
             .get::<_, SolverRecord>(&DataKey::Solver(solver))
         {
             Some(record) => {
+                let now = env.ledger().timestamp();
+                let cooldown_remaining = Self::slash_cooldown_remaining(record.last_slash_time, now);
                 record.is_active
                     && record.bond_amount >= cfg.min_bond
                     && record.active_intents < cfg.max_active_intents_per_solver
+                    && cooldown_remaining == 0
             }
             None => false,
         }
