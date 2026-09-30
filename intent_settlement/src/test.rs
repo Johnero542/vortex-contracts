@@ -2239,6 +2239,7 @@ fn two_partial_fills_complete_intent() {
 
     // First partial fill: half of MIN_DST.
     let half = MIN_DST / 2;
+    let half_src = SRC_AMT / 2;
     let fee1 = half * 5 / 10_000;
     ctx.dst_admin().mint(&ctx.solver, &(half + fee1));
     c.accept_intent(&ctx.solver, &id);
@@ -2255,6 +2256,7 @@ fn two_partial_fills_complete_intent() {
 
     // Second fill: the remainder — brings total to MIN_DST.
     let remainder = MIN_DST - half;
+    let remainder_src = SRC_AMT - half_src;
     let fee2 = remainder * 5 / 10_000;
     ctx.dst_admin().mint(&ctx.solver, &(remainder + fee2));
     c.accept_intent(&ctx.solver, &id);
@@ -2284,6 +2286,7 @@ fn partial_fill_left_incomplete_past_deadline_can_be_expired() {
 
     // Deliver a partial fill (less than MIN_DST).
     let partial = MIN_DST / 3;
+    let partial_src = SRC_AMT / 3;
     let fee = partial * 5 / 10_000;
     ctx.dst_admin().mint(&ctx.solver, &(partial + fee));
     c.accept_intent(&ctx.solver, &id);

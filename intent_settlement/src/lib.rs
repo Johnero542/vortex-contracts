@@ -383,13 +383,15 @@ pub struct IntentRecord {
 
     /// Destination (always Stellar)
     pub dst_token: Address, // SAC/SEP-41 token on Stellar
-    pub min_dst_amount: i128, // minimum acceptable output per fill (floor per partial)
+    pub min_dst_amount: i128, // minimum acceptable output per fill (#348: per src_portion)
 
     pub solver: Option<Address>, // assigned solver
     pub state: IntentState,
 
     pub created_at: u64,
-    pub deadline: u64,
+    /// #347: user's original deadline; separate from fill-window deadline which gets reset
+    pub user_deadline: u64,
+    pub deadline: u64, // effective deadline (fill window or user deadline)
     pub filled_at: Option<u64>,
     pub fill_amount: Option<i128>, // cumulative dst tokens received across all fills
 
@@ -2204,10 +2206,11 @@ impl IntentSettlement {
     /// Solver fills the intent by sending dst_token to the user.
     ///
     /// Partial fills are supported: `fill_amount` must be > 0 but may be less
-    /// than `min_dst_amount`.  The intent transitions to `PartiallyFilled` after
+    /// than `min_dst_amount * src_portion / src_amount`.  The intent transitions to `PartiallyFilled` after
     /// each sub-fill and is re-opened so another solver (or the same one) can
     /// accept and deliver the remainder.  Once the cumulative `total_filled`
-    /// reaches or exceeds `min_dst_amount` the intent transitions to `Filled`.
+    /// reaches or exceeds `min_dst_amount * src_amount / src_amount` (when src_filled == src_amount),
+    /// the intent transitions to `Filled`.
     ///
     /// The protocol fee is taken on each individual fill so the fee accounting
     /// stays consistent regardless of how many fills it takes.
