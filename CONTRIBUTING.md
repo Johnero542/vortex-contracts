@@ -339,6 +339,45 @@ preconditions, and authorization requirements. Internal helpers (prefixed with
 
 ---
 
+## Code Ownership and Review Routing
+
+This repository uses a [`.github/CODEOWNERS`](./.github/CODEOWNERS) file to
+establish ownership of major areas and automatically route PRs to reviewers
+with relevant expertise. All paths in the repository are mapped to one or more
+owners/teams (see the file for the full mapping).
+
+### Becoming a Code Owner
+
+If you have demonstrated sustained contribution to a specific area of the
+repository (multiple non-trivial PRs, demonstrated domain expertise), you can
+become a listed owner for that area:
+
+1. Check the current owners in [`.github/CODEOWNERS`](./.github/CODEOWNERS)
+2. Open an issue or propose a PR adding yourself as an owner
+3. Gain approval from the existing owners of that area (they can speak to your
+   expertise and contribution history)
+4. Update [`.github/CODEOWNERS`](./.github/CODEOWNERS) and merge with the
+   approving maintainers' sign-off
+
+Ownership is not a permanent role — it reflects sustained involvement in an
+area. If you move on to other projects or take an extended break, consider
+requesting removal so the review queue doesn't back up waiting for unavailable
+reviewers.
+
+## Governance and Protocol Changes
+
+Any change to protocol parameters, admin actions, or contract upgrades requires an
+off-chain governance process *before* the on-chain proposal. See [`GOVERNANCE.md`](./GOVERNANCE.md)
+for the full process, including:
+
+- Required discussion window (minimum 3 business days).
+- When emergency pause is appropriate vs. when governance is required.
+- How to structure a proposal and engage stakeholders.
+
+This applies to any `propose_*` or `set_config` call. Regular PRs that change code
+(without affecting live deployments) do not require this process — just the standard
+code review above.
+
 ## Submitting a PR
 
 1. Fork the repo and create a branch from `main`:
@@ -409,6 +448,31 @@ make deploy-testnet   # stellar contract deploy … --network testnet
 
 See [`Makefile`](./Makefile) and [`justfile`](./justfile) for the full list of
 targets, or run `make help` / `just --list`.
+
+### Integration tests
+
+Beyond the in-process unit tests, a new CI job (`integration-test`) runs an
+end-to-end lifecycle test against a local Soroban standalone network on every PR.
+This exercises the real deployment, `initialize`, and CLI-invocation path that
+operators and solvers use in production — catching issues that unit tests might
+miss (e.g., contract-build plumbing, CLI argument encoding).
+
+To run the same test locally for debugging:
+
+```bash
+bash scripts/e2e-test.sh
+```
+
+The script will:
+1. Start a local Soroban standalone network (via Docker)
+2. Build and deploy the contract
+3. Initialize it with test accounts
+4. Register a test solver
+5. Submit, accept, and fill a test intent
+6. Verify state transitions at each step
+
+Adjust the `USDC_CONTRACT_ID` in the script if you need to test with different
+tokens or network configurations.
 
 ### Pre-push checklist
 
@@ -572,7 +636,25 @@ matrix leg that runs on toolchain `1.78` alongside `stable`.
 - [ ] All required CI checks pass
 - [ ] PR description includes `Closes #<issue-number>`
 - [ ] New public items have doc-comments
-- [ ] `CHANGELOG.md` updated under `[Unreleased]`
+- [ ] `CHANGELOG.md` updated under `[Unreleased]` (or PR labeled `no-changelog-needed`)
+
+### CHANGELOG enforcement
+
+A CI job automatically verifies that every PR changing `intent_settlement/src/` or
+`proof_registry/src/` includes a corresponding update to `CHANGELOG.md`. This is
+a load-bearing requirement: the runbook and integration guides depend on the
+changelog being accurate for operators and solvers.
+
+**Escape hatch:** For genuinely changelog-exempt changes (pure test-only, 
+comment-only, CI/tooling with no behavioral impact), add the `no-changelog-needed`
+label to your PR. The CI job will skip enforcement and you won't need to add a
+trivial changelog entry just to satisfy automation.
+
+The CI check runs automatically on every PR and fails with a clear message if 
+a source change lacks a changelog entry. Fix it by updating `CHANGELOG.md` (find
+the `[Unreleased]` section and add a bullet-point entry under the appropriate
+subsection — `Added`, `Changed`, `Fixed`, etc.), or add the label if the change
+genuinely doesn't warrant a changelog entry.
 
 ## License
 

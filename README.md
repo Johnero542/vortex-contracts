@@ -583,16 +583,19 @@ That document consolidates scattered follow-up notes and roadmap items from desi
 
 ## Contributing
 
-See the repo-specific [`CONTRIBUTING.md`](./CONTRIBUTING.md) for Rust/Soroban
-toolchain setup, test conventions, and PR requirements. For org-wide process,
-see the org-wide
-[CONTRIBUTING.md](https://github.com/vortex-protocol/.github/blob/main/CONTRIBUTING.md).
-See [CONTRIBUTING.md](./CONTRIBUTING.md) for contributor and maintainer
-guidelines, including local dev commands, the pre-push checklist, and the
-branch-protection / required-checks maintainer guide.
+See [`CONTRIBUTING.md`](./CONTRIBUTING.md) for:
+- Rust/Soroban toolchain setup
+- Test conventions and local dev commands  
+- PR checklist and branch-protection requirements
+- Code ownership and review routing
+- Integration test documentation
 
-For org-wide policies see the
-[org CONTRIBUTING.md](https://github.com/vortex-protocol/.github/blob/main/CONTRIBUTING.md).
+For **protocol governance** (proposing parameter changes, admin actions, contract
+upgrades), see [`GOVERNANCE.md`](./GOVERNANCE.md). It describes the off-chain
+discussion and deliberation process that precedes the on-chain 48-hour timelock.
+
+For org-wide policies, see the
+[org-wide CONTRIBUTING.md](https://github.com/vortex-protocol/.github/blob/main/CONTRIBUTING.md).
 
 ## Ecosystem & Grants
 
